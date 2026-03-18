@@ -15,7 +15,7 @@ from fastavro import parse_schema, writer
 from irbase.utils import open_compressed
 from irbase.schemata.avro import SEQUENCE_RECORD
 
-def make_seq_records(cell_umis, cell_contigs, sequences, subject=None, sample=None, source=None, drop_contig=False):
+def make_seq_records(cell_umis, cell_contigs, sequences, annotations, subject=None, sample=None, source=None, drop_contig=False):
     for (cell, chain) in cell_umis:
         name = cell_contigs[(cell, chain)]
         if drop_contig:
@@ -25,10 +25,8 @@ def make_seq_records(cell_umis, cell_contigs, sequences, subject=None, sample=No
         # form the sequence objects with annotations
         sequence = {'sequence': contig_seq,
                     'qual':     contig_qual,
-                    'annotations': {
-                        'umis': cell_umis[(cell, chain)],
-                        'chain': chain
-                    }, 'ranges': {}}
+                    'annotations': annotations[(cell, chain)], 
+                    'ranges': {}}
 
         record = {'name': name,
                   'subject': subject,
@@ -42,20 +40,24 @@ def make_seq_records(cell_umis, cell_contigs, sequences, subject=None, sample=No
         yield record
 
 def main():
-    parser = argparse.ArgumentParser(description='generate barcode and primer informations for FASTQ read pais', 
+    parser = argparse.ArgumentParser(description='select chain from Cell Ranger VDJ outout with the most UMIs and convert to IRB format', 
             formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     # paths
     parser.add_argument('cell_ranger_vdj_path', metavar='cellranger_outs_dir', default='.', type=Path, help='directory with the output of Cell Ranger VDJ pipeline')
-    # the source name
+    # options to processes data
     parser.add_argument('--drop-contig', '-d', action='store_true', default=False, help='drop the contig name from the read name')
-    parser.add_argument('--subject', metavar='subject', default=None, help='the subject to label this data')
-    parser.add_argument('--sample',  metavar='sample',  default=None, help='the sample to label this data')
-    parser.add_argument('--source',  metavar='source',  default=None, help='the source to label this data')
+    parser.add_argument('--group', '-g', metavar='G', default='all', help='which set of VDJ contigs or annotations to load')
     # subset based on chain type
     group = parser.add_mutually_exclusive_group()
-    group.add_argument('--heavy-only', action='store_true', help='only parse heavy-chains')
-    group.add_argument('--light-only', action='store_true', help='only parse light-chains')
-    group.add_argument('--both',       action='store_true', help='parse both chains')
+    group.add_argument('--heavy-only',  action='store_true', help='only parse heavy-chains')
+    group.add_argument('--light-only',  action='store_true', help='only parse light-chains')
+    group.add_argument('--both-chains', action='store_true', help='parse both chains')
+    # values for metadata
+    meta_group = parser.add_argument_group('metadata options')
+    meta_group.add_argument('--subject', metavar='subject', default=None, help='the subject to label this data')
+    meta_group.add_argument('--sample',  metavar='sample',  default=None, help='the sample to label this data')
+    meta_group.add_argument('--source',  metavar='source',  default=None, help='the source to label this data')
+    
 
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO)
@@ -65,19 +67,20 @@ def main():
 
     if args.light_only:
         chains_to_parse = {'IGK', 'IGL'}
-    elif args.both:
-        chains_to_parse = {'IGH', 'IGK', 'IGL'}
-    else:
+    elif args.heavy_only:
         chains_to_parse = {'IGH'}
+    else:
+        chains_to_parse = {'IGH', 'IGK', 'IGL'}
 
     logging.info(','.join(chains_to_parse))
 
     output_schema = parse_schema(SEQUENCE_RECORD)
 
-    with open_compressed(args.cell_ranger_vdj_path / 'all_contig_annotations.csv', 'rt') as filtered_contig, \
-         open_compressed(args.cell_ranger_vdj_path / 'all_contig.fastq', 'rt') as filtered_sequences:
+    with open_compressed(args.cell_ranger_vdj_path / (args.group + '_contig_annotations.csv'), 'rt') as filtered_contig, \
+         open_compressed(args.cell_ranger_vdj_path / (args.group + '_contig.fastq'), 'rt') as filtered_sequences:
         
-        cell_umi_count = {} # max UMI count for this cell
+        cell_umi_count = {} # max UMI count for this cell, chain
+        annotations    = {} # seq. annotations for cell, chaim with max UMI
         cell_contig    = {} # contig name with the max UMI count
 
         for row in csv.DictReader(filtered_contig):
@@ -93,16 +96,26 @@ def main():
                     if umis >= cell_umi_count[(cell, chain)]:
                         cell_umi_count[(cell, chain)] = umis
                         cell_contig[(cell, chain)] = row['contig_id']
+                        annotations[(cell, chain)] = {
+                            'cr_umis': row['umis'],
+                            'cr_reads': row['reads'],
+                            'cr_chain': row['chain'],
+                            'cr_clonotype_id': row['raw_clonotype_id']}
                 else:
                     cell_umi_count[(cell, chain)] = umis
                     cell_contig[(cell, chain)] = row['contig_id']
+                    annotations[(cell, chain)] = {
+                            'cr_umis': row['umis'],
+                            'cr_reads': row['reads'],
+                            'cr_chain': row['chain'],
+                            'cr_clonotype_id': row['raw_clonotype_id']}
 
         # load the sequences for each contig
         sequences = {}
         for contig_id, contig_seq, contig_qual in FastqGeneralIterator(filtered_sequences):
             sequences[contig_id] = (contig_seq, contig_qual)
 
-        seq_records = make_seq_records(cell_umi_count, cell_contig, sequences,
+        seq_records = make_seq_records(cell_umi_count, cell_contig, sequences, annotations,
                 subject=args.subject, sample=args.sample, source=args.source, drop_contig=args.drop_contig)
 
         writer(sys.stdout.buffer, output_schema, seq_records, codec='bzip2')
