@@ -32,7 +32,7 @@ def make_range(start, stop):
     result = {'start': start, 'stop': stop}
     return result
 
-def make_named_range(name, start, stop,):
+def make_named_range(name, start, stop):
     result = {'name': name, 'start': start, 'stop': stop}
     return result
 
