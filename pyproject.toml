@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools >= 82.0.1",
+            "fastavro>=1.12.1",
+            "biopython>=1.86",
+            "cramjam>=2.11.0",]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "irb2"
+version = "0.0.1"
+authors = [
+  { name="Krishna M. Roskin", email="krishnaroskin@gmail.com" },
+]
+description = "Set of tools for processing AIRR-seq data"
+readme = "README.md"
+requires-python = ">=3.9"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
