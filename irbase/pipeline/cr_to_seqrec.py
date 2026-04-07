@@ -49,7 +49,7 @@ def main():
     parser.add_argument('--drop-contig', '-d', action='store_true', default=False, help='drop the contig name from the read name')
     parser.add_argument('--group', '-g', metavar='G', default='all', help='which set of VDJ contigs or annotations to load')
     parser.add_argument('--log-level', '-l', choices=[i.lower() for i in reversed(logging.getLevelNamesMapping())],
-        default='info', help='set logging level')
+        default='error', help='set logging level')
     # subset based on chain type
     group = parser.add_mutually_exclusive_group()
     group.add_argument('--heavy-only',  action='store_true', help='only parse heavy-chains')
@@ -65,7 +65,7 @@ def main():
     avro_group.add_argument('--codec', choices=BLOCK_READERS.keys(), default='snappy', help='compression codec to use')
 
     args = parser.parse_args()
-    logging.basicConfig(level=logging.getLevelName(args.log_level.upper()))
+    logging.basicConfig(level=logging.getLevelNamesMapping()[args.log_level.upper()])
     start_time = time.time()
 
     if args.heavy_only:

@@ -2,7 +2,7 @@ import gzip
 import bz2
 import itertools
 import sys
-from pathlib import PurePath
+from pathlib import PurePath, Path
 
 def open_compressed(filename, mode='rb'):
     if not isinstance(filename, PurePath):
