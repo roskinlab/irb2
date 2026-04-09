@@ -1,0 +1,9 @@
+{
+    "editor.defaultFormatter": "ms-python.black-formatter",
+    "python.terminal.activateEnvInCurrentTerminal": true,
+    "python.analysis.includeVenvInWorkspaceSymbols": true,
+    "python.analysis.languageServerMode": "full",
+    "python.languageServer": "Pylance",
+    "terminal.integrated.shellIntegration.timeout": 30000,
+    "python.useEnvironmentsExtension": true
+}
