@@ -9,6 +9,7 @@ import time
 from collections import defaultdict
 
 import fastavro
+from fastavro.read import BLOCK_READERS
 from Bio import SeqIO
 
 from irbase.utils import open_compressed, make_range, make_named_range
@@ -118,15 +119,20 @@ def main():
             formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     # input files
     parser.add_argument('parse_label', metavar='label', help='the parse label to use for the parse')
-    parser.add_argument('repertoire_filenames', metavar='repertoire-file', nargs=4, help='the V(D)J repertoire file used in IgBLAST')
-    parser.add_argument('seq_record_filename', metavar='seq_record.avro', help='the Avro file with the sequence records')
+    parser.add_argument('repertoire_filenames', metavar='repertoire-file', nargs=4, help='the V(D)JC repertoire file used in IgBLAST')
+    parser.add_argument('seqrec_filename', metavar='seq_record.avro', help='the Avro file with the sequence records')
     parser.add_argument('igblast_output_filenames', metavar='parse.igblast', nargs='+', help='the output of IgBLAST to parse and attach to the sequence record')
     # options
     parser.add_argument('--min-v-score', metavar='S', type=float, default=70.0, help='the minimum score for the V-segment')
     parser.add_argument('--min-j-score', metavar='S', type=float, default=26.0, help='the minimum score for the J-segment')
+    parser.add_argument('--log-level', '-l', choices=[i.lower() for i in reversed(logging.getLevelNamesMapping())],
+        default='error', help='set logging level')
+    # options for avro
+    avro_group = parser.add_argument_group('Avro options')
+    avro_group.add_argument('--codec', choices=BLOCK_READERS.keys(), default='snappy', help='compression codec to use')
 
     args = parser.parse_args()
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.getLevelNamesMapping()[args.log_level.upper()])
     start_time = time.time()
 
     output_schema = fastavro.parse_schema(SEQUENCE_RECORD)
@@ -140,14 +146,14 @@ def main():
 
     logging.info('adding parses to sequence records')
 
-    with open_compressed(args.seq_record_filename, 'rb') as seq_record_handle:
+    with open_compressed(args.seqrec_filename, 'rb') as seq_record_handle:
         seq_record_reader = fastavro.reader(seq_record_handle)
         igblast_parse_reader = igblast_chain(args.igblast_output_filenames)
 
         annotator = igblast_annotator(germline_lengths, seq_record_reader, igblast_parse_reader, args.parse_label,
                                     args.min_v_score, args.min_j_score)
 
-        fastavro.writer(sys.stdout.buffer, output_schema, annotator, codec='bzip2')
+        fastavro.writer(sys.stdout.buffer, output_schema, annotator, codec=args.codec)
 
     elapsed_time = time.time() - start_time
     logging.info('elapsed time %s', time.strftime('%H hours, %M minutes, %S seconds', time.gmtime(elapsed_time)))
