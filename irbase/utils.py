@@ -5,13 +5,7 @@ import sys
 from pathlib import PurePath, Path
 
 def open_compressed(filename, mode='rb'):
-    if not isinstance(filename, PurePath):
-        filename = Path(filename)
-    if filename.suffix == '.gz':
-        return gzip.open(filename, mode)
-    elif filename.suffix == '.bz2':
-        return bz2.open(filename, mode)
-    elif filename == '-':
+    if filename == '-':
         if 'r' in mode:
             if 'b' in mode:
                 return sys.stdin.buffer
@@ -23,7 +17,15 @@ def open_compressed(filename, mode='rb'):
             else:
                 return sys.stdout
     else:
-        return open(filename, mode=mode)
+        if not isinstance(filename, PurePath):
+            filename = Path(filename)
+        
+        if filename.suffix == '.gz':
+            return gzip.open(filename, mode)
+        elif filename.suffix == '.bz2':
+            return bz2.open(filename, mode)     
+        else:
+            return open(filename, mode=mode)
 
 def slice_from_range(range_):
     return slice(range_['start'], range_['stop'])
