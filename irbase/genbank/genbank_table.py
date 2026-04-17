@@ -8,7 +8,7 @@ import argparse
 import fastavro
 from collections import defaultdict
 
-from roskinlib.utils import open_compressed
+from irbase.utils import open_compressed
 
 def best_vdj_score(parse):
     '''extracts the best segment name and score given a parse record'''
