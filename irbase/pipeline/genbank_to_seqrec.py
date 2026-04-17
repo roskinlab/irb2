@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-from __future__ import print_function
-
 import sys
 import argparse
 import logging
@@ -10,6 +8,7 @@ import time
 from Bio import SeqIO
 from fastavro import parse_schema
 from fastavro import writer
+from fastavro.read import BLOCK_READERS
 
 from irbase.utils import open_compressed
 from irbase.schemata.avro import SEQUENCE_RECORD
@@ -45,7 +44,7 @@ def genbank_filter_chain(filenames, organism=None, max_length=None):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='loads Genbank sequences',
+    parser = argparse.ArgumentParser(description='loads Genbank sequences into SeqRec',
             formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     # input files
     parser.add_argument('genbank_filenames', metavar='genbank_file', nargs='+', help='the file with the Genbank records')
