@@ -24,5 +24,5 @@ classifiers = [
 ]
 
 [project.scripts]
-seqrec_add_parse_igblast = "irbase.pipeline.seqrec_add_parse_igblast:main"
-seqrec_to_fastx = "irbase.pipeline.seqrec_to_fastx:main"
+seqrec_add_parse_igblast = "irbase.tools.seqrec_add_parse_igblast:main"
+seqrec_to_fastx = "irbase.tools.seqrec_to_fastx:main"
