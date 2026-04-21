@@ -52,7 +52,7 @@ def main():
     group = parser.add_mutually_exclusive_group()
     group.add_argument('--heavy-only',  action='store_true', help='only parse heavy-chains')
     group.add_argument('--light-only',  action='store_true', help='only parse light-chains')
-    group.add_argument('--both-chains', action='store_true', help='parse both chains')
+    group.add_argument('--both-chains', action='store_true', default=True, help='parse both chains')
     # values for metadata
     meta_group = parser.add_argument_group('metadata options')
     meta_group.add_argument('--subject', metavar='subject', default=None, help='the subject to label this data')
