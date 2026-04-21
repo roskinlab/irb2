@@ -92,7 +92,6 @@ def main():
 
     writer = csv.DictWriter(sys.stdout, fieldnames=[
         'accession', 'description',
-        #'curation_group', 'curation_year',
         'v_name', 'v_score', 'd_name', 'd_score', 'j_name', 'j_score',
         'sequence_nt', 'sequence_aa', 'cdr3_nt', 'cdr3_aa'
         ])
@@ -105,6 +104,10 @@ def main():
             for record in reader:
                 parse = record['parses'][args.parse_label]
                 if parse is not None:
+
+                    name = record['name']
+                    genbank, name = name.split(':')
+                    assert genbank == 'genbank'
 
                     description = None
                     if 'description' in record['sequence']['annotations']:
@@ -122,12 +125,8 @@ def main():
                         print('error with ' + record['name'], file=sys.stderr)
                         raise 
 
-                    row = {'accession': record['name'],
+                    row = {'accession': name,
                            'description': description,
-                           #'curation_group': record['sequence']['annotations']['curation_group'],
-                           #'curation_year': record['sequence']['annotations']['curation_year'],
-                           'sequence_nt': sequence_nt,
-                           'sequence_aa': sequence_aa,
                            'v_name': v_name,
                            'v_score': v_score,
                            'd_name': d_name,
@@ -135,7 +134,9 @@ def main():
                            'j_name': j_name,
                            'j_score': j_score,
                            'cdr3_nt': cdr3_nt,
-                           'cdr3_aa': cdr3_aa
+                           'cdr3_aa': cdr3_aa,
+                           'sequence_nt': sequence_nt,
+                           'sequence_aa': sequence_aa
                         }
 
                     writer.writerow(row)

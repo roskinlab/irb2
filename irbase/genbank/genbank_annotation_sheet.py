@@ -239,7 +239,7 @@ def write_curation_row(workbook, worksheet, records, igblast_annotations, curren
 
         # outout IgBLAST annotations
         igblast_annotations
-        v_name, v_score, d_name, d_score, j_name, j_score = igblast_annotations[name]
+        v_name, v_score, d_name, d_score, j_name, j_score, cdr3_nt, cdr3_aa, sequence_nt, sequence_aa = igblast_annotations[name]
 
         if v_name is None:
             if worksheet.hlink_count < 65530:
@@ -330,16 +330,16 @@ def get_igblast_annotations(igblast_table_filename, names, v_cutoff, j_cutoff):
     annotations = {}
     good_count = 0
     with open_compressed(igblast_table_filename, 'rt') as igblast_table_handle:
-        for record in csv.DictReader(igblast_table_handle, delimiter='\t'):
+        for record in csv.DictReader(igblast_table_handle):
             name = record['accession'].split('.')[0]
             if name in names:
                 v_name = None if record['v_name'] == 'None' else record['v_name']
                 d_name = None if record['d_name'] == 'None' else record['d_name']
                 j_name = None if record['j_name'] == 'None' else record['j_name']
 
-                v_score = 0.0 if record['v_score'] == 'None' else float(record['v_score'])
-                d_score = 0.0 if record['d_score'] == 'None' else float(record['d_score'])
-                j_score = 0.0 if record['j_score'] == 'None' else float(record['j_score'])
+                v_score = 0.0 if record['v_score'] in ['None', ''] else float(record['v_score'])
+                d_score = 0.0 if record['d_score'] in ['None', ''] else float(record['d_score'])
+                j_score = 0.0 if record['j_score'] in ['None', ''] else float(record['j_score'])
 
                 max_v_score = max(max_v_score, v_score)
                 max_j_score = max(max_j_score, j_score)
@@ -347,7 +347,12 @@ def get_igblast_annotations(igblast_table_filename, names, v_cutoff, j_cutoff):
                 if v_score >= v_cutoff and j_score >= j_cutoff:
                     good_count += 1
 
-                annotations[name] = (v_name, v_score, d_name, d_score, j_name, j_score)
+                cdr3_nt = record['cdr3_nt']
+                cdr3_aa = record['cdr3_aa']
+                sequence_nt = record['sequence_nt']
+                sequence_aa = record['sequence_aa']
+
+                annotations[name] = (v_name, v_score, d_name, d_score, j_name, j_score, cdr3_nt, cdr3_aa, sequence_nt, sequence_aa)
     return max_v_score, max_j_score, good_count, annotations
 
 def main():
@@ -375,6 +380,11 @@ def main():
     if '.' in stat_filename:
         stat_filename = stat_filename[:stat_filename.rindex('.')]
     stat_filename += '.stat'
+
+    csv_filename = args.genbank_filename
+    if '.' in csv_filename:
+        csv_filename = csv_filename[:csv_filename.rindex('.')]
+    csv_filename += '.csv'
 
     current_row = 0
     
@@ -410,6 +420,23 @@ def main():
             with open(stat_filename, 'wt') as stat_handle:
                 all_title = ';'.join(r[1] for r in references)
                 print(good_count, all_title, sep='\t', file=stat_handle)
+            
+            with open(csv_filename, 'wt') as csv_handle:
+                writer = csv.DictWriter(csv_handle, fieldnames=[
+                    'accession', 'v_name', 'v_score', 'd_name', 'd_score', 'j_name', 'j_score',
+                    'cdr3_nt', 'cdr3_aa', 'sequence_nt', 'sequence_aa',
+                    'source_features', 'other_features'])
+                writer.writeheader()
+                for record in records:
+                    name = record.id.split('.')[0]
+                    source_features, other_features = get_features(record)
+                    v_name, v_score, d_name, d_score, j_name, j_score, \
+                        cdr3_nt, cdr3_aa, sequence_nt, sequence_aa = igblast_annotations[name]
+                    row = {'accession': name,
+                           'v_name': v_name, 'v_score': v_score, 'd_name': d_name, 'd_score': d_score, 'j_name': j_name, 'j_score': j_score,
+                           'cdr3_nt': cdr3_nt, 'cdr3_aa': cdr3_aa, 'sequence_nt': sequence_nt, 'sequence_aa': sequence_aa,
+                           'source_features': '\n'.join(source_features), 'other_features': '\n'.join(other_features)}
+                    writer.writerow(row)
 
     logging.info('wrote %s rows', current_row)
     elapsed_time = time.time() - start_time
