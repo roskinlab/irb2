@@ -102,17 +102,31 @@ def main():
             reader = fastavro.reader(read_handle)
 
             for record in reader:
+                name = record['name']
+                genbank, name = name.split(':')
+                assert genbank == 'genbank'
+
+                description = None
+                if 'description' in record['sequence']['annotations']:
+                    description = record['sequence']['annotations']['description']
                 parse = record['parses'][args.parse_label]
-                if parse is not None:
+                if parse is None:
+                    row = {'accession': name,
+                           'description': description,
+                           'v_name': None,
+                           'v_score': None,
+                           'd_name': None,
+                           'd_score': None,
+                           'j_name': None,
+                           'j_score': None,
+                           'cdr3_nt': None,
+                           'cdr3_aa': None,
+                           'sequence_nt': None,
+                           'sequence_aa': None
+                        }
 
-                    name = record['name']
-                    genbank, name = name.split(':')
-                    assert genbank == 'genbank'
-
-                    description = None
-                    if 'description' in record['sequence']['annotations']:
-                        description = record['sequence']['annotations']['description']
-
+                    writer.writerow(row)
+                else:
                     v_name, v_score, d_name, d_score, j_name, j_score = best_vdj_score(parse)
 
                     assert parse['alignments'][0]['type'] == 'Q'
