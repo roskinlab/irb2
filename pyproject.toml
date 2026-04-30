@@ -27,6 +27,7 @@ classifiers = [
 [project.scripts]
 seqrec_add_parse_igblast = "irbase.pipeline.seqrec_add_parse_igblast:main"
 seqrec_to_fastx = "irbase.tools.seqrec_to_fastx:main"
+fastx_to_seqrec = "irbase.tools.fastx_to_seqrec:main"
 split_avro = "irbase.tools.split_avro:main"
 cat_avro = "irbase.tools.cat_avro:main"
 seqrec_list_parses = "irbase.tools.seqrec_list_parses:main"
