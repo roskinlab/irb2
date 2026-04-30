@@ -238,8 +238,11 @@ def write_curation_row(workbook, worksheet, records, igblast_annotations, curren
         worksheet.write_string(current_row, 3, '\n'.join(other_features), format_dark)
 
         # outout IgBLAST annotations
-        igblast_annotations
-        v_name, v_score, d_name, d_score, j_name, j_score, cdr3_nt, cdr3_aa, sequence_nt, sequence_aa = igblast_annotations[name]
+        if name in igblast_annotations:
+            v_name, v_score, d_name, d_score, j_name, j_score, cdr3_nt, cdr3_aa, sequence_nt, sequence_aa = igblast_annotations[name]
+        else:
+            v_name, v_score, d_name, d_score, j_name, j_score, cdr3_nt, cdr3_aa, sequence_nt, sequence_aa = \
+            None,   None,    None,   None,    None,   None,    None,    None,    None,        None
 
         if v_name is None:
             if worksheet.hlink_count < 65530:
@@ -430,8 +433,12 @@ def main():
                 for record in records:
                     name = record.id.split('.')[0]
                     source_features, other_features = get_features(record)
-                    v_name, v_score, d_name, d_score, j_name, j_score, \
-                        cdr3_nt, cdr3_aa, sequence_nt, sequence_aa = igblast_annotations[name]
+                    if name in igblast_annotations:
+                        v_name, v_score, d_name, d_score, j_name, j_score, cdr3_nt, cdr3_aa, sequence_nt, sequence_aa = igblast_annotations[name]
+                    else:
+                        v_name, v_score, d_name, d_score, j_name, j_score, cdr3_nt, cdr3_aa, sequence_nt, sequence_aa = \
+                        None,   None,    None,   None,    None,   None,    None,    None,    None,        None
+
                     row = {'accession': name,
                            'v_name': v_name, 'v_score': v_score, 'd_name': d_name, 'd_score': d_score, 'j_name': j_name, 'j_score': j_score,
                            'cdr3_nt': cdr3_nt, 'cdr3_aa': cdr3_aa, 'sequence_nt': sequence_nt, 'sequence_aa': sequence_aa,
